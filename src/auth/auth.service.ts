@@ -27,6 +27,7 @@ export class AuthService {
       username,
       email,
       password: hashedPassword,
+      isVerified: false, // Assurez-vous d'initialiser cette propriété lors de la création de l'utilisateur
     });
 
     // Enregistrer l'utilisateur dans la base de données
@@ -39,6 +40,11 @@ export class AuthService {
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
       throw new UnauthorizedException('Identifiants invalides.');
+    }
+
+    // Vérifiez si l'utilisateur est vérifié
+    if (!user.isVerified) {
+      throw new UnauthorizedException('Votre compte n\'est pas encore vérifié.');
     }
 
     // Comparer le mot de passe haché

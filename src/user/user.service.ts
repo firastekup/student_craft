@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -7,7 +7,7 @@ import { User } from './entities/user.entity';
 export class UserService {
   constructor(
     @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>,
   ) {}
 
   // Récupérer tous les utilisateurs
@@ -15,24 +15,53 @@ export class UserService {
     return this.userRepository.find();
   }
 
-  // Trouver un utilisateur par ID
+  // Récupérer un utilisateur par son ID
   findOne(id: number): Promise<User> {
     return this.userRepository.findOne({ where: { id } });
   }
 
-  // Créer un nouvel utilisateur
+  // Créer un utilisateur
   create(user: User): Promise<User> {
     return this.userRepository.save(user);
   }
 
   // Mettre à jour un utilisateur
-  async update(id: number, user: Partial<User>): Promise<User> {
-    await this.userRepository.update(id, user);
-    return this.userRepository.findOne({ where: { id } });
+  update(id: number, updateUser: Partial<User>): Promise<User> {
+    return this.userRepository.save({ ...updateUser, id });
   }
 
   // Supprimer un utilisateur
   async remove(id: number): Promise<void> {
     await this.userRepository.delete(id);
+  }
+
+  // Mettre à jour le chemin du document uploadé
+  async updateDocumentPath(id: number, path: string): Promise<User> {
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    user.documentPath = path;
+    return this.userRepository.save(user);
+  }
+
+  // Vérifier l'utilisateur par l'admin
+  async verifyUser(id: number): Promise<User> {
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    user.isVerified = true;  // Marque l'utilisateur comme vérifié
+    return this.userRepository.save(user);
+  }
+
+  // Rejeter l'utilisateur par l'admin
+  async rejectUser(id: number): Promise<User> {
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    user.isVerified = false;  // Marque l'utilisateur comme rejeté
+    return this.userRepository.save(user);
   }
 }
